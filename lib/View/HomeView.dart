@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:silicondemo/Common/DatabaseMethods.dart';
+
+import 'package:silicondemo/Service/UpdateData.dart';
 import 'package:silicondemo/Service/UploadData.dart';
 
 class HomeView extends StatefulWidget {
@@ -14,7 +15,7 @@ class _HomeViewState extends State<HomeView> {
   TextEditingController name = new TextEditingController();
   TextEditingController imageURL = new TextEditingController();
   TextEditingController description = new TextEditingController();
-  var heart = Icons.favorite_border;
+  // var heart = Icons.favorite_border;
   List<String> months = [
     'January',
     'February',
@@ -74,14 +75,43 @@ class _HomeViewState extends State<HomeView> {
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Container(
-                                child: IconButton(
-                                    onPressed: () {
-                                      heart == Icons.favorite
-                                          ? Icons.favorite_border
-                                          : Icons.favorite;
-                                      setState(() {});
-                                    },
-                                    icon: Icon(heart))),
+                              child: IconButton(
+                                onPressed: () {
+                                  doc['liked'] == true
+                                      ? UpdateData().updateData(
+                                          collectionName: 'photos',
+                                          docId: doc.id,
+                                          date: doc['date'],
+                                          description: doc['description'],
+                                          imageURL: doc['imageURL'],
+                                          liked: false,
+                                          month: doc['month'],
+                                          name: doc['name'],
+                                          year: doc['year'],
+                                        )
+                                      : UpdateData().updateData(
+                                          collectionName: 'photos',
+                                          docId: doc.id,
+                                          date: doc['date'],
+                                          description: doc['description'],
+                                          imageURL: doc['imageURL'],
+                                          liked: true,
+                                          month: doc['month'],
+                                          name: doc['name'],
+                                          year: doc['year'],
+                                        );
+                                  setState(() {});
+                                },
+                                icon: Icon(
+                                  doc['liked'] == false
+                                      ? Icons.favorite_border
+                                      : Icons.favorite,
+                                  color: doc['liked'] == false
+                                      ? Colors.white
+                                      : Colors.red,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         Flexible(
@@ -105,13 +135,11 @@ class _HomeViewState extends State<HomeView> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      // DateFormat('yyyy-MM-dd – kk:mm').format(now);
                                       Text(
                                           "${doc['date']} ${months[doc['month'] - 1]} ${doc['year']}",
                                           style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 10)),
-                                      //  months.indexOf(doc['date'].split(' ')[0]) + 1, int.parse(doc['date'].substring(doc['date'].length - 8, doc['date'].length - 6))}"),
                                       Text(
                                         "-${doc['name']}",
                                         textAlign: TextAlign.end,
@@ -150,44 +178,7 @@ class _HomeViewState extends State<HomeView> {
                 "Add Photo",
                 style: TextStyle(fontWeight: FontWeight.bold),
               )),
-              content:
-                  //  Row(
-                  //   children: [
-                  //     Column(
-                  //       mainAxisAlignment: MainAxisAlignment.start,
-                  //       children: [
-                  //         Text("Photographer Name "),
-                  //         Text("Image URL "),
-                  //         Text("Description ")
-                  //       ],
-                  //     ),
-                  //     Expanded(
-                  //       child: Column(
-                  //         children: [
-                  //           TextField(
-                  //             decoration: InputDecoration(
-                  //               hintText: 'Enter Text',
-                  //               border: OutlineInputBorder(),
-                  //             ),
-                  //           ),
-                  //           TextField(
-                  //             decoration: InputDecoration(
-                  //               hintText: 'Enter Text',
-                  //               border: OutlineInputBorder(),
-                  //             ),
-                  //           ),
-                  //           TextField(
-                  //             decoration: InputDecoration(
-                  //               hintText: 'Enter Text',
-                  //               border: OutlineInputBorder(),
-                  //             ),
-                  //           ),
-                  //         ],
-                  //       ),
-                  //     )
-                  //   ],
-                  // ),
-                  Column(
+              content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
