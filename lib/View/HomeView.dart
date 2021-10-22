@@ -35,6 +35,7 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Photo Galary"),
+        backgroundColor: Color(0xFF4A4C50),
         actions: [
           Padding(
             padding: const EdgeInsets.all(8.0),
