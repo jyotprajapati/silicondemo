@@ -17,11 +17,12 @@ class DataBaseMethods {
     String collectionName,
     Map<String, dynamic> dataMap,
   ) async {
-    return await FirebaseFirestore.instance
+    await FirebaseFirestore.instance
         .collection(collectionName)
         .add(dataMap)
         .catchError((e) {
       print(e.toString());
     });
+    return true;
   }
 }

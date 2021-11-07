@@ -1,15 +1,15 @@
-import 'package:silicondemo/Common/DatabaseMethods.dart';
+import 'package:silicondemo/Service/DatabaseMethods.dart';
 
 class UploadData {
   uploadData(String? name, String imageURL, String? description) {
-    DataBaseMethods().addToCollection("photos", {
+    bool value = DataBaseMethods().addToCollection("photos", {
       'name': name,
       'imageURL': imageURL,
       'description': description,
       'liked': false,
-      'date': "${DateTime.now().day}",
-      'month': DateTime.now().month,
-      'year': "${DateTime.now().year}",
+      'date': DateTime.now()
     });
+
+    return value;
   }
 }

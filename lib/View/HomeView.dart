@@ -1,8 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:silicondemo/Models/photoModel.dart';
 
 import 'package:silicondemo/Service/UpdateData.dart';
 import 'package:silicondemo/Service/UploadData.dart';
+import 'package:silicondemo/Utils/Colors.dart';
+import 'package:silicondemo/Utils/Constant.dart';
+import 'package:silicondemo/Utils/Style.dart';
+import 'package:silicondemo/Utils/Utils.dart';
+import 'package:silicondemo/Widgets/PictureBox.dart';
+
+enum ClassType { A, B, C, D }
 
 class HomeView extends StatefulWidget {
   const HomeView({Key? key}) : super(key: key);
@@ -16,151 +24,188 @@ class _HomeViewState extends State<HomeView> {
   TextEditingController imageURL = new TextEditingController();
   TextEditingController description = new TextEditingController();
   // var heart = Icons.favorite_border;
+
   List<String> months = [
-    'January',
-    'February',
-    'March',
-    'April',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
     'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sept',
+    'Oct',
+    'Nov',
+    'Dec'
   ];
+  int sort = 0;
+
+  var query = FirebaseFirestore.instance
+      .collection('photos')
+      .orderBy("date")
+      .snapshots();
+
+  List authors = [];
+  List displayList = [];
+  List<String> authername = [];
+  List<String> authername2 = [];
+  List<bool> checkValue = [];
+
+  getAuthers() async {
+    var authorsQuery = await FirebaseFirestore.instance
+        .collection('photos')
+        .orderBy("name")
+        .get();
+    // var length = await authorsQuery.length;
+    authors = authorsQuery.docs.map((e) => e['name']).toList();
+
+    authername2.add("All");
+    for (int i = 0; i < authors.length; i++) authername2.add(authors[i]);
+    authername = authername2.toSet().toList();
+
+    for (int i = 0; i < authername.length; i++) checkValue.add(false);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getAuthers();
+    checkValue.add(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Photo Galary"),
-        backgroundColor: Color(0xFF4A4C50),
+        backgroundColor: primaryColor,
         actions: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Icon(Icons.filter_list),
+            padding: EdgeInsets.all(defaultPadding),
+            child: DropdownButton<String>(
+              underline: SizedBox(
+                width: 0,
+              ),
+              icon: Icon(
+                Icons.filter_list,
+                color: Colors.white,
+              ),
+              onChanged: (String? value) {
+                query = querySelector(value);
+                setState(() {});
+              },
+              items: <String>[
+                'Time - Latest first',
+                'TIme - Latest last',
+                'Name'
+              ].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Icon(Icons.sort),
-          )
+          DropdownButton<String>(
+            underline: SizedBox(
+              width: 0,
+            ),
+            icon: Icon(
+              Icons.sort,
+              color: Colors.white,
+            ),
+            onChanged: (String? value) {
+              setState(() {});
+            },
+            items: authername.map((String aname) {
+              return DropdownMenuItem<String>(
+                  value: aname,
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: checkValue[authername.indexOf(aname)],
+                        onChanged: (value) async {
+                          if (checkValue[0] == true &&
+                              authername.indexOf(aname) != 0) {
+                            checkValue[0] = false;
+                          }
+                          checkValue[authername.indexOf(aname)] =
+                              checkValue[authername.indexOf(aname)] == true
+                                  ? false
+                                  : true;
+
+                          setState(() {});
+                        },
+                      ),
+                      Text(aname)
+                    ],
+                  ));
+            }).toList(),
+          ),
+          // Padding(
+          //   padding: EdgeInsets.all(defaultPadding),
+          //   child: DropdownButton<String>(
+          //     underline: SizedBox(),
+          //     icon: Icon(
+          //       Icons.sort,
+          //       color: secondaryColor,
+          //     ),
+          //     onChanged: (String? value) {
+          //       setState(() {});
+          //     },
+          //     items: authername.map((String aname) {
+          //       return DropdownMenuItem<String>(
+          //           value: aname,
+          //           child: Row(
+          //             children: [
+          //               Checkbox(
+          //                 value: checkValue[authername.indexOf(aname)],
+          //                 onChanged: (value) async {
+          //                   if (checkValue[0] == true &&
+          //                       authername.indexOf(aname) != 0) {
+          //                     checkValue[0] = false;
+          //                   }
+          //                   checkValue[authername.indexOf(aname)] =
+          //                       checkValue[authername.indexOf(aname)] == true
+          //                           ? false
+          //                           : true;
+
+          //                   setState(() {});
+          //                 },
+          //               ),
+          //               Text(aname)
+          //             ],
+          //           ));
+          //     }).toList(),
+          //   ),
+          // ),
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('photos').snapshots(),
+        stream: query,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
+            List<PhotoCard> displayList = makeDisplayList(
+                authername: authername,
+                checkValue: checkValue,
+                snapshot: snapshot);
             return GridView.builder(
               gridDelegate:
                   SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-              itemBuilder: (_, index) {
-                DocumentSnapshot doc = snapshot.data!.docs[index];
-
-                return Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: AspectRatio(
-                          aspectRatio: 1 / 1,
-                          child: Image.network(
-                            doc['imageURL'],
-                          )),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          flex: 2,
-                          child: Align(
-                            alignment: Alignment.topLeft,
-                            child: Container(
-                              child: IconButton(
-                                onPressed: () {
-                                  doc['liked'] == true
-                                      ? UpdateData().updateData(
-                                          collectionName: 'photos',
-                                          docId: doc.id,
-                                          date: doc['date'],
-                                          description: doc['description'],
-                                          imageURL: doc['imageURL'],
-                                          liked: false,
-                                          month: doc['month'],
-                                          name: doc['name'],
-                                          year: doc['year'],
-                                        )
-                                      : UpdateData().updateData(
-                                          collectionName: 'photos',
-                                          docId: doc.id,
-                                          date: doc['date'],
-                                          description: doc['description'],
-                                          imageURL: doc['imageURL'],
-                                          liked: true,
-                                          month: doc['month'],
-                                          name: doc['name'],
-                                          year: doc['year'],
-                                        );
-                                  setState(() {});
-                                },
-                                icon: Icon(
-                                  doc['liked'] == false
-                                      ? Icons.favorite_border
-                                      : Icons.favorite,
-                                  color: doc['liked'] == false
-                                      ? Colors.white
-                                      : Colors.red,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Flexible(
-                          flex: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Container(
-                              color: Colors.black.withOpacity(0.3),
-                              child: Column(
-                                children: [
-                                  Align(
-                                    alignment: Alignment.topLeft,
-                                    child: Text(
-                                      doc['description'],
-                                      textAlign: TextAlign.start,
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                          "${doc['date']} ${months[doc['month'] - 1]} ${doc['year']}",
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10)),
-                                      Text(
-                                        "-${doc['name']}",
-                                        textAlign: TextAlign.end,
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold),
-                                      )
-                                    ],
-                                  )
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  ],
-                );
+              itemCount: displayList.length,
+              itemBuilder: (
+                _,
+                index,
+              ) {
+                return pictureBox(
+                    months: months,
+                    photoCard: displayList[index],
+                    displayList: displayList,
+                    setState: () {
+                      setState(() {});
+                    });
               },
-              itemCount: snapshot.data!.size,
             );
           } else {
             return Container();
@@ -169,7 +214,7 @@ class _HomeViewState extends State<HomeView> {
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
-        backgroundColor: Color(0xFFF68F50),
+        backgroundColor: buttonColor,
         onPressed: () {
           showDialog(
             context: context,
@@ -177,24 +222,40 @@ class _HomeViewState extends State<HomeView> {
               title: Center(
                   child: Text(
                 "Add Photo",
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: buttonText,
               )),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: EdgeInsets.all(defaultPadding),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       mainAxisSize: MainAxisSize.max,
                       children: [
-                        Text("Photographer Name "),
+                        Padding(
+                          padding: EdgeInsets.only(right: defaultPaddingSmall),
+                          child: Text(
+                            "Photographer Name ",
+                            style: buttonText2,
+                          ),
+                        ),
                         Expanded(
-                          child: TextField(
-                            controller: name,
-                            decoration: InputDecoration(
-                              hintText: 'Enter Text',
-                              border: OutlineInputBorder(),
+                          flex: 1,
+                          child: Container(
+                            height: 30,
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: TextField(
+                                controller: name,
+                                style: fieldText,
+                                decoration: InputDecoration(
+                                  contentPadding: EdgeInsets.only(
+                                      left: defaultPaddingSmall2),
+                                  hintText: 'Enter Text',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -202,17 +263,30 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: EdgeInsets.all(defaultPadding),
                     child: Row(
                       mainAxisSize: MainAxisSize.max,
                       children: [
-                        Text("Image URL "),
+                        // Text("Image URL "),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 38),
+                          child: Text(
+                            "Image URL       ",
+                            style: buttonText2,
+                          ),
+                        ),
                         Expanded(
-                          child: TextField(
-                            controller: imageURL,
-                            decoration: InputDecoration(
-                              hintText: 'Enter Text',
-                              border: OutlineInputBorder(),
+                          flex: 1,
+                          child: Container(
+                            height: 30,
+                            child: TextField(
+                              controller: imageURL,
+                              decoration: InputDecoration(
+                                contentPadding:
+                                    EdgeInsets.only(left: defaultPaddingSmall2),
+                                hintText: 'Enter Text',
+                                border: OutlineInputBorder(),
+                              ),
                             ),
                           ),
                         ),
@@ -220,17 +294,30 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: EdgeInsets.all(defaultPadding),
                     child: Row(
                       mainAxisSize: MainAxisSize.max,
                       children: [
-                        Text("Description "),
+                        // Text("Description "),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 50),
+                          child: Text(
+                            "Description ",
+                            style: buttonText2,
+                          ),
+                        ),
                         Expanded(
-                          child: TextField(
-                            controller: description,
-                            decoration: InputDecoration(
-                              hintText: 'Enter Text',
-                              border: OutlineInputBorder(),
+                          flex: 1,
+                          child: Container(
+                            height: 30,
+                            child: TextField(
+                              controller: description,
+                              decoration: InputDecoration(
+                                contentPadding:
+                                    EdgeInsets.only(left: defaultPaddingSmall2),
+                                hintText: 'Enter Text',
+                                border: OutlineInputBorder(),
+                              ),
                             ),
                           ),
                         ),
@@ -245,33 +332,33 @@ class _HomeViewState extends State<HomeView> {
                           return Navigator.pop(context);
                         },
                         child: Card(
-                          color: Color(0xFFF68F50),
+                          color: buttonColor,
                           child: Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.fromLTRB(25, 8, 25, 8),
                             child: Text(
                               "CANCEL",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
+                              style: buttonText3,
                             ),
                           ),
                         ),
                       ),
                       InkWell(
                         onTap: () {
-                          UploadData().uploadData(
+                          bool value = UploadData().uploadData(
                               name.text, imageURL.text, description.text);
+
+                          if (value == false) {
+                            SnackBar(content: Text("Error"));
+                          }
                           Navigator.pop(context);
                         },
                         child: Card(
-                          color: Color(0xFFF68F50),
+                          color: buttonColor,
                           child: Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.fromLTRB(35, 8, 35, 8),
                             child: Text(
                               "ADD",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
+                              style: buttonText3,
                             ),
                           ),
                         ),
